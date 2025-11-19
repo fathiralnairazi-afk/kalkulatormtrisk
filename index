@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Calculator Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-pdf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .matrix-cell {
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .matrix-cell:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            transform: scale(1.05);
+        }
+        
+        .operation-btn {
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+        
+        .operation-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .result-matrix {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .matrix-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        
+        .error-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .success-pulse {
+            animation: pulse 0.6s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @media (max-width: 768px) {
+            .matrix-cell {
+                width: 60px;
+                height: 40px;
+                font-size: 14px;
+            }
+            
+            .operation-btn {
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-400 via-blue-500 to-indigo-600">
+    <div class="floating-particles" id="particles"></div>
+    
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tight">
+                <i class="fas fa-th mr-3"></i>
+                Matrix Calculator Pro
+            </h1>
+            <p class="text-xl text-white/80 max-w-2xl mx-auto">
+                Advanced matrix operations with real-time calculations and beautiful visualizations
+            </p>
+        </div>
+        
+        <!-- Matrix Size Controls -->
+        <div class="matrix-container p-6 mb-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-cog mr-2 text-blue-600"></i>
+                Matrix Dimensions
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-700">Matrix A</h3>
+                    <div class="flex gap-4 items-center">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Rows</label>
+                            <input type="number" id="rowsA" min="1" max="6" value="3" 
+                                   class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <span class="text-gray-500 mt-6">×</span>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Columns</label>
+                            <input type="number" id="colsA" min="1" max="6" value="3" 
+                                   class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-700">Matrix B</h3>
+                    <div class="flex gap-4 items-center">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Rows</label>
+                            <input type="number" id="rowsB" min="1" max="6" value="3" 
+                                   class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <span class="text-gray-500 mt-6">×</span>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Columns</label>
+                            <input type="number" id="colsB" min="1" max="6" value="3" 
+                                   class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="updateMatrixSizes()" 
+                    class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center">
+                <i class="fas fa-sync mr-2"></i>
+                Update Matrices
+            </button>
+        </div>
+        
+        <!-- Matrix Input Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Matrix A -->
+            <div class="matrix-container p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-table mr-2 text-green-600"></i>
+                    Matrix A
+                </h2>
+                <div id="matrixA" class="grid gap-2 justify-center"></div>
+                <button onclick="fillRandom('A')" 
+                        class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm">
+                    <i class="fas fa-dice mr-1"></i>
+                    Random Fill
+                </button>
+            </div>
+            
+            <!-- Matrix B -->
+            <div class="matrix-container p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-table mr-2 text-red-600"></i>
+                    Matrix B
+                </h2>
+                <div id="matrixB" class="grid gap-2 justify-center"></div>
+                <button onclick="fillRandom('B')" 
+                        class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm">
+                    <i class="fas fa-dice mr-1"></i>
+                    Random Fill
+                </button>
+            </div>
+        </div>
+        
+        <!-- Operations Section -->
+        <div class="matrix-container p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-calculator mr-2 text-purple-600"></i>
+                Matrix Operations
+            </h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Basic Operations -->
+                <button onclick="performOperation('add')" class="operation-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-plus mr-2"></i>A + B
+                </button>
+                <button onclick="performOperation('subtract')" class="operation-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-minus mr-2"></i>A - B
+                </button>
+                <button onclick="performOperation('multiply')" class="operation-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-times mr-2"></i>A × B
+                </button>
+                
+                <!-- Transpose Operations -->
+                <button onclick="performOperation('transposeA')" class="operation-btn bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-exchange-alt mr-2"></i>Aᵀ
+                </button>
+                <button onclick="performOperation('transposeB')" class="operation-btn bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-exchange-alt mr-2"></i>Bᵀ
+                </button>
+                
+                <!-- Inverse Operations -->
+                <button onclick="performOperation('inverseA')" class="operation-btn bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-divide mr-2"></i>A⁻¹
+                </button>
+                <button onclick="performOperation('inverseB')" class="operation-btn bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-divide mr-2"></i>B⁻¹
+                </button>
+                
+                <!-- Determinant Operations -->
+                <button onclick="performOperation('detA')" class="operation-btn bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-calculator mr-2"></i>det(A)
+                </button>
+                <button onclick="performOperation('detB')" class="operation-btn bg-pink-500 hover:bg-pink-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-calculator mr-2"></i>det(B)
+                </button>
+                
+                <!-- Power Operations -->
+                <button onclick="performOperation('powerA2')" class="operation-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-superscript mr-2"></i>A²
+                </button>
+                <button onclick="performOperation('powerB2')" class="operation-btn bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-superscript mr-2"></i>B²
+                </button>
+                
+                <!-- Scalar Multiplication -->
+                <button onclick="showScalarInput('A')" class="operation-btn bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-times mr-2"></i>c × A
+                </button>
+                <button onclick="showScalarInput('B')" class="operation-btn bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-medium">
+                    <i class="fas fa-times mr-2"></i>c × B
+                </button>
+            </div>
+            
+            <!-- Scalar Input (Hidden by default) -->
+            <div id="scalarInput" class="mt-4 p-4 bg-gray-100 rounded-lg hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Enter scalar value:</label>
+                <div class="flex gap-2">
+                    <input type="number" id="scalarValue" step="any" 
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <button onclick="performScalarMultiplication()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                        Calculate
+                    </button>
+                    <button onclick="hideScalarInput()" 
+                            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results" class="matrix-container p-6 hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-chart-line mr-2 text-indigo-600"></i>
+                Result
+            </h2>
+            <div id="resultContent"></div>
+            <div id="resultMatrix" class="grid gap-2 justify-center mb-4"></div>
+            <div id="resultDetails" class="text-gray-600"></div>
+        </div>
+        
+        <!-- Error Modal -->
+        <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md mx-4">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl mr-3"></i>
+                    <h3 class="text-lg font-semibold text-gray-800">Error</h3>
+                </div>
+                <p id="errorMessage" class="text-gray-600 mb-4"></p>
+                <button onclick="closeErrorModal()" 
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="matrix-calculator.js"></script>
+</body>
+</html>
