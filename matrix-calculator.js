@@ -1,0 +1,430 @@
+// Matrix Calculator JavaScript
+let currentScalarTarget = null;
+let matrixA = [];
+let matrixB = [];
+
+// Initialize the calculator
+document.addEventListener('DOMContentLoaded', function() {
+    createParticles();
+    updateMatrixSizes();
+});
+
+// Create floating particles effect
+function createParticles() {
+    const particlesContainer = document.getElementById('particles');
+    for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 6 + 's';
+        particlesContainer.appendChild(particle);
+    }
+}
+
+// Update matrix sizes based on input
+function updateMatrixSizes() {
+    const rowsA = parseInt(document.getElementById('rowsA').value);
+    const colsA = parseInt(document.getElementById('colsA').value);
+    const rowsB = parseInt(document.getElementById('rowsB').value);
+    const colsB = parseInt(document.getElementById('colsB').value);
+    
+    createMatrixInput('matrixA', rowsA, colsA, 'A');
+    createMatrixInput('matrixB', rowsB, colsB, 'B');
+}
+
+// Create matrix input grid
+function createMatrixInput(containerId, rows, cols, matrixName) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    
+    for (let i = 0; i < rows * cols; i++) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = 'any';
+        input.className = 'matrix-cell w-16 h-12 text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500';
+        input.value = i === 0 ? 1 : 0; // Default to identity-like matrix
+        input.addEventListener('input', () => validateInput(input));
+        container.appendChild(input);
+    }
+}
+
+// Validate matrix input
+function validateInput(input) {
+    if (isNaN(parseFloat(input.value))) {
+        input.classList.add('border-red-500');
+    } else {
+        input.classList.remove('border-red-500');
+        input.classList.add('border-green-500');
+    }
+}
+
+// Fill matrix with random values
+function fillRandom(matrixName) {
+    const containerId = matrixName === 'A' ? 'matrixA' : 'matrixB';
+    const inputs = document.querySelectorAll(`#${containerId} input`);
+    
+    inputs.forEach(input => {
+        input.value = (Math.random() * 20 - 10).toFixed(2);
+        input.classList.remove('border-red-500');
+        input.classList.add('border-green-500');
+    });
+}
+
+// Get matrix values from input
+function getMatrix(matrixName) {
+    const containerId = matrixName === 'A' ? 'matrixA' : 'matrixB';
+    const rows = parseInt(document.getElementById(`rows${matrixName}`).value);
+    const cols = parseInt(document.getElementById(`cols${matrixName}`).value);
+    const inputs = document.querySelectorAll(`#${containerId} input`);
+    
+    const matrix = [];
+    for (let i = 0; i < rows; i++) {
+        matrix[i] = [];
+        for (let j = 0; j < cols; j++) {
+            const value = parseFloat(inputs[i * cols + j].value) || 0;
+            matrix[i][j] = value;
+        }
+    }
+    return matrix;
+}
+
+// Show scalar input
+function showScalarInput(matrixName) {
+    currentScalarTarget = matrixName;
+    document.getElementById('scalarInput').classList.remove('hidden');
+    document.getElementById('scalarValue').focus();
+}
+
+// Hide scalar input
+function hideScalarInput() {
+    document.getElementById('scalarInput').classList.add('hidden');
+    document.getElementById('scalarValue').value = '';
+    currentScalarTarget = null;
+}
+
+// Perform scalar multiplication
+function performScalarMultiplication() {
+    const scalar = parseFloat(document.getElementById('scalarValue').value);
+    if (isNaN(scalar)) {
+        showError('Please enter a valid scalar value');
+        return;
+    }
+    
+    const matrix = getMatrix(currentScalarTarget);
+    const result = scalarMultiply(matrix, scalar);
+    
+    showResult(`${scalar} × Matrix ${currentScalarTarget}`, result, 
+               `Scalar multiplication of Matrix ${currentScalarTarget} by ${scalar}`);
+    hideScalarInput();
+}
+
+// Matrix operations
+function performOperation(operation) {
+    try {
+        let result, title, details;
+        
+        switch(operation) {
+            case 'add':
+                const A = getMatrix('A');
+                const B = getMatrix('B');
+                if (A.length !== B.length || A[0].length !== B[0].length) {
+                    throw new Error('Matrices must have the same dimensions for addition');
+                }
+                result = addMatrices(A, B);
+                title = 'A + B';
+                details = 'Matrix addition: element-wise sum of matrices A and B';
+                break;
+                
+            case 'subtract':
+                const A_sub = getMatrix('A');
+                const B_sub = getMatrix('B');
+                if (A_sub.length !== B_sub.length || A_sub[0].length !== B_sub[0].length) {
+                    throw new Error('Matrices must have the same dimensions for subtraction');
+                }
+                result = subtractMatrices(A_sub, B_sub);
+                title = 'A - B';
+                details = 'Matrix subtraction: element-wise difference of matrices A and B';
+                break;
+                
+            case 'multiply':
+                const A_mul = getMatrix('A');
+                const B_mul = getMatrix('B');
+                if (A_mul[0].length !== B_mul.length) {
+                    throw new Error('Number of columns in A must equal number of rows in B for multiplication');
+                }
+                result = multiplyMatrices(A_mul, B_mul);
+                title = 'A × B';
+                details = `Matrix multiplication: (${A_mul.length}×${A_mul[0].length}) × (${B_mul.length}×${B_mul[0].length}) = (${result.length}×${result[0].length})`;
+                break;
+                
+            case 'transposeA':
+                const A_trans = getMatrix('A');
+                result = transposeMatrix(A_trans);
+                title = 'Aᵀ';
+                details = `Transpose of Matrix A: rows become columns (${A_trans.length}×${A_trans[0].length}) → (${result.length}×${result[0].length})`;
+                break;
+                
+            case 'transposeB':
+                const B_trans = getMatrix('B');
+                result = transposeMatrix(B_trans);
+                title = 'Bᵀ';
+                details = `Transpose of Matrix B: rows become columns (${B_trans.length}×${B_trans[0].length}) → (${result.length}×${result[0].length})`;
+                break;
+                
+            case 'inverseA':
+                const A_inv = getMatrix('A');
+                if (A_inv.length !== A_inv[0].length) {
+                    throw new Error('Only square matrices have inverses');
+                }
+                if (determinant(A_inv) === 0) {
+                    throw new Error('Matrix A is singular (determinant = 0) and has no inverse');
+                }
+                result = inverseMatrix(A_inv);
+                title = 'A⁻¹';
+                details = 'Inverse of Matrix A: A × A⁻¹ = I (identity matrix)';
+                break;
+                
+            case 'inverseB':
+                const B_inv = getMatrix('B');
+                if (B_inv.length !== B_inv[0].length) {
+                    throw new Error('Only square matrices have inverses');
+                }
+                if (determinant(B_inv) === 0) {
+                    throw new Error('Matrix B is singular (determinant = 0) and has no inverse');
+                }
+                result = inverseMatrix(B_inv);
+                title = 'B⁻¹';
+                details = 'Inverse of Matrix B: B × B⁻¹ = I (identity matrix)';
+                break;
+                
+            case 'detA':
+                const A_det = getMatrix('A');
+                if (A_det.length !== A_det[0].length) {
+                    throw new Error('Only square matrices have determinants');
+                }
+                const detA = determinant(A_det);
+                showDeterminantResult('det(A)', detA, 'Determinant of Matrix A');
+                return;
+                
+            case 'detB':
+                const B_det = getMatrix('B');
+                if (B_det.length !== B_det[0].length) {
+                    throw new Error('Only square matrices have determinants');
+                }
+                const detB = determinant(B_det);
+                showDeterminantResult('det(B)', detB, 'Determinant of Matrix B');
+                return;
+                
+            case 'powerA2':
+                const A_pow = getMatrix('A');
+                if (A_pow.length !== A_pow[0].length) {
+                    throw new Error('Only square matrices can be raised to powers');
+                }
+                result = multiplyMatrices(A_pow, A_pow);
+                title = 'A²';
+                details = 'Matrix A squared: A × A';
+                break;
+                
+            case 'powerB2':
+                const B_pow = getMatrix('B');
+                if (B_pow.length !== B_pow[0].length) {
+                    throw new Error('Only square matrices can be raised to powers');
+                }
+                result = multiplyMatrices(B_pow, B_pow);
+                title = 'B²';
+                details = 'Matrix B squared: B × B';
+                break;
+                
+            default:
+                throw new Error('Unknown operation');
+        }
+        
+        showResult(title, result, details);
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+// Matrix mathematical functions
+function addMatrices(A, B) {
+    const result = [];
+    for (let i = 0; i < A.length; i++) {
+        result[i] = [];
+        for (let j = 0; j < A[0].length; j++) {
+            result[i][j] = A[i][j] + B[i][j];
+        }
+    }
+    return result;
+}
+
+function subtractMatrices(A, B) {
+    const result = [];
+    for (let i = 0; i < A.length; i++) {
+        result[i] = [];
+        for (let j = 0; j < A[0].length; j++) {
+            result[i][j] = A[i][j] - B[i][j];
+        }
+    }
+    return result;
+}
+
+function multiplyMatrices(A, B) {
+    const result = [];
+    for (let i = 0; i < A.length; i++) {
+        result[i] = [];
+        for (let j = 0; j < B[0].length; j++) {
+            let sum = 0;
+            for (let k = 0; k < A[0].length; k++) {
+                sum += A[i][k] * B[k][j];
+            }
+            result[i][j] = sum;
+        }
+    }
+    return result;
+}
+
+function scalarMultiply(matrix, scalar) {
+    const result = [];
+    for (let i = 0; i < matrix.length; i++) {
+        result[i] = [];
+        for (let j = 0; j < matrix[0].length; j++) {
+            result[i][j] = matrix[i][j] * scalar;
+        }
+    }
+    return result;
+}
+
+function transposeMatrix(matrix) {
+    const result = [];
+    for (let i = 0; i < matrix[0].length; i++) {
+        result[i] = [];
+        for (let j = 0; j < matrix.length; j++) {
+            result[i][j] = matrix[j][i];
+        }
+    }
+    return result;
+}
+
+function determinant(matrix) {
+    const n = matrix.length;
+    if (n === 1) return matrix[0][0];
+    if (n === 2) return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+    
+    let det = 0;
+    for (let i = 0; i < n; i++) {
+        det += matrix[0][i] * cofactor(matrix, 0, i);
+    }
+    return det;
+}
+
+function cofactor(matrix, row, col) {
+    const subMatrix = [];
+    for (let i = 0; i < matrix.length; i++) {
+        if (i === row) continue;
+        subMatrix.push([]);
+        for (let j = 0; j < matrix[0].length; j++) {
+            if (j === col) continue;
+            subMatrix[subMatrix.length - 1].push(matrix[i][j]);
+        }
+    }
+    return Math.pow(-1, row + col) * determinant(subMatrix);
+}
+
+function inverseMatrix(matrix) {
+    const det = determinant(matrix);
+    if (det === 0) throw new Error('Matrix is singular and has no inverse');
+    
+    const n = matrix.length;
+    const adjoint = [];
+    
+    for (let i = 0; i < n; i++) {
+        adjoint[i] = [];
+        for (let j = 0; j < n; j++) {
+            adjoint[i][j] = cofactor(matrix, j, i) / det;
+        }
+    }
+    
+    return adjoint;
+}
+
+// Display functions
+function showResult(title, result, details) {
+    const resultsSection = document.getElementById('results');
+    const resultContent = document.getElementById('resultContent');
+    const resultMatrix = document.getElementById('resultMatrix');
+    const resultDetails = document.getElementById('resultDetails');
+    
+    resultContent.innerHTML = `<h3 class="text-xl font-semibold text-gray-800 mb-2">${title}</h3>`;
+    resultDetails.innerHTML = `<p class="text-sm text-gray-600">${details}</p>`;
+    
+    displayMatrix(resultMatrix, result);
+    resultsSection.classList.remove('hidden');
+    resultsSection.classList.add('success-pulse');
+    
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showDeterminantResult(title, determinant, details) {
+    const resultsSection = document.getElementById('results');
+    const resultContent = document.getElementById('resultContent');
+    const resultMatrix = document.getElementById('resultMatrix');
+    const resultDetails = document.getElementById('resultDetails');
+    
+    resultContent.innerHTML = `<h3 class="text-xl font-semibold text-gray-800 mb-2">${title}</h3>`;
+    resultMatrix.innerHTML = `<div class="text-4xl font-bold text-blue-600 text-center p-8 bg-blue-50 rounded-lg">${determinant.toFixed(4)}</div>`;
+    resultDetails.innerHTML = `<p class="text-sm text-gray-600">${details}</p>`;
+    
+    resultsSection.classList.remove('hidden');
+    resultsSection.classList.add('success-pulse');
+    
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function displayMatrix(container, matrix) {
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
+    
+    for (let i = 0; i < matrix.length; i++) {
+        for (let j = 0; j < matrix[0].length; j++) {
+            const cell = document.createElement('div');
+            cell.className = 'w-16 h-12 bg-blue-100 border-2 border-blue-300 rounded-lg flex items-center justify-center font-mono text-sm font-semibold text-blue-800';
+            cell.textContent = matrix[i][j].toFixed(2);
+            container.appendChild(cell);
+        }
+    }
+}
+
+function showError(message) {
+    const errorModal = document.getElementById('errorModal');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    errorMessage.textContent = message;
+    errorModal.classList.remove('hidden');
+    errorModal.classList.add('flex');
+}
+
+function closeErrorModal() {
+    const errorModal = document.getElementById('errorModal');
+    errorModal.classList.add('hidden');
+    errorModal.classList.remove('flex');
+}
+
+// Handle Enter key for scalar input
+document.getElementById('scalarValue').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performScalarMultiplication();
+    }
+});
+
+// Handle Enter key for matrix size inputs
+['rowsA', 'colsA', 'rowsB', 'colsB'].forEach(id => {
+    document.getElementById(id).addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            updateMatrixSizes();
+        }
+    });
+});
